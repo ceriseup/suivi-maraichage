@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi Maraîchage</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #F0F1F1; }
+        .header { background: #001F54; color: white; padding: 20px; }
+        .tabs { background: white; display: flex; border-bottom: 2px solid #C7A0CB; }
+        .tab { flex: 1; padding: 16px; text-align: center; cursor: pointer; font-weight: 600; color: #6b7280; border: none; background: transparent; }
+        .tab.active { color: #001F54; border-bottom: 3px solid #001F54; }
+        .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stat { padding: 12px; border-radius: 8px; }
+        .stat-label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+        .stat-value { font-size: 20px; font-weight: bold; }
+        label { display: block; font-weight: 500; margin-bottom: 8px; }
+        input, select { width: 100%; padding: 12px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+        button { padding: 14px; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-primary { background: #001F54; color: white; width: 100%; padding: 16px; font-size: 18px; }
+        .btn-primary:hover { background: #002a75; }
+        .btn-secondary { background: #F0F1F1; color: #374151; }
+        .btn-active { background: #001F54; color: white; }
+        .btn-active-red { background: #B42150; color: white; }
+        .btn-active-blue { background: #C7A0CB; color: white; }
+        .entry { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; }
+        .entry-amount { font-size: 24px; font-weight: bold; }
+        .green { color: #001F54; }
+        .red { color: #B42150; }
+        .bg-green { background: #f3e8f5; }
+        .bg-blue { background: #f3e8f5; }
+        .bg-red { background: #fce8ed; }
+        .bg-purple { background: #C7A0CB; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌱 Suivi Maraîchage</h1>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" id="tab-saisie" onclick="showTab('saisie')">Saisie</button>
+        <button class="tab" id="tab-recap" onclick="showTab('recap')">Récapitulatif</button>
+    </div>
+
+    <div class="container" id="content-saisie">
+        <div class="card">
+            <h3 style="margin-bottom: 12px;">Mois en cours</h3>
+            <div class="stats">
+                <div class="stat bg-green">
+                    <div class="stat-label">Marchés</div>
+                    <div class="stat-value green" id="stat-marche">0.00 €</div>
+                </div>
+                <div class="stat bg-blue">
+                    <div class="stat-label">Paniers</div>
+                    <div class="stat-value" style="color: #C7A0CB;" id="stat-paniers">0.00 €</div>
+                </div>
+                <div class="stat bg-red">
+                    <div class="stat-label">Dépenses</div>
+                    <div class="stat-value" style="color: #B42150;" id="stat-depenses">0.00 €</div>
+                </div>
+                <div class="stat bg-purple">
+                    <div class="stat-label">Solde</div>
+                    <div class="stat-value" style="color: #001F54;" id="stat-solde">0.00 €</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <label>Date</label>
+            <input type="date" id="date" />
+
+            <label>Type</label>
+            <div class="btn-group">
+                <button id="btn-vente" class="btn-active" onclick="selectType('vente')">💰 Vente</button>
+                <button id="btn-depense" class="btn-secondary" onclick="selectType('depense')">💸 Dépense</button>
+            </div>
+
+            <div id="canal-group">
+                <label>Canal</label>
+                <div class="btn-group">
+                    <button id="btn-marche" class="btn-active" onclick="selectCanal('marche')">🏪 Marché</button>
+                    <button id="btn-paniers" class="btn-secondary" onclick="selectCanal('paniers')">🧺 Paniers</button>
+                </div>
+            </div>
+
+            <label>Montant (€)</label>
+            <input type="number" step="0.01" id="amount" placeholder="0.00" />
+
+            <label>Description</label>
+            <input type="text" id="description" placeholder="Optionnel..." />
+
+            <button class="btn-primary" onclick="saveEntry()">✓ Enregistrer</button>
+        </div>
+
+        <div id="entries"></div>
+        
+        <!-- Mentions légales avec logo -->
+        <div style="background: white; padding: 20px; margin-top: 30px; border-top: 1px solid #C7A0CB;">
+            <div style="display: flex; align-items: center; gap: 20px; max-width: 800px; margin: 0 auto;">
+                <div style="flex-shrink: 0;">
+                   <img src="https://d1yei2z3i6k35z.cloudfront.net/13882048/68b9ba238c879_Logo.png" alt="Mon Logo" style="max-width: 140px; height: auto;">
+                </div>
+                <div style="flex: 1; font-size: 11px; line-height: 1.6; color: #666;">
+                    <p style="margin: 0 0 8px 0;"><strong>Mentions légales</strong></p>
+                    <p style="margin: 0 0 8px 0;">Cet outil de calcul est fourni à titre indicatif uniquement. Les résultats ne constituent pas un conseil professionnel.</p>
+                    <p style="margin: 0 0 8px 0;"><strong>© 2025 Cerise Up - Tous droits réservés</strong></p>
+                    <p style="margin: 0;">Toute reproduction interdite sans autorisation écrite préalable.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="content-recap" style="display: none;"></div>
+
+    <script>
+        // Polyfill pour window.storage si non disponible
+        if (!window.storage) {
+            window.storage = {
+                async set(key, value) {
+                    localStorage.setItem(key, value);
+                    return { key, value };
+                },
+                async get(key) {
+                    const value = localStorage.getItem(key);
+                    return value ? { key, value } : null;
+                },
+                async delete(key) {
+                    localStorage.removeItem(key);
+                    return { key, deleted: true };
+                },
+                async list(prefix) {
+                    const keys = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith(prefix)) {
+                            keys.push(key);
+                        }
+                    }
+                    return { keys };
+                }
+            };
+        }
+
+        let entries = [];
+        let currentType = 'vente';
+        let currentCanal = 'marche';
+        let currentTab = 'saisie';
+
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+        function showTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-saisie').classList.toggle('active', tab === 'saisie');
+            document.getElementById('tab-recap').classList.toggle('active', tab === 'recap');
+            document.getElementById('content-saisie').style.display = tab === 'saisie' ? 'block' : 'none';
+            document.getElementById('content-recap').style.display = tab === 'recap' ? 'block' : 'none';
+            
+            if (tab === 'recap') {
+                renderRecap();
+            }
+        }
+
+        window.showTab = showTab;
+
+        async function loadEntries() {
+            try {
+                const result = await window.storage.list('entry:');
+                if (result && result.keys) {
+                    entries = [];
+                    for (const key of result.keys) {
+                        const data = await window.storage.get(key);
+                        if (data && data.value) entries.push(JSON.parse(data.value));
+                    }
+                    entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    updateStats();
+                    renderEntries();
+                }
+            } catch (e) {
+                console.log('Init');
+            }
+        }
+
+        function selectType(type) {
+            currentType = type;
+            document.getElementById('btn-vente').className = type === 'vente' ? 'btn-active' : 'btn-secondary';
+            document.getElementById('btn-depense').className = type === 'depense' ? 'btn-active-red' : 'btn-secondary';
+            document.getElementById('canal-group').style.display = type === 'vente' ? 'block' : 'none';
+        }
+
+        function selectCanal(canal) {
+            currentCanal = canal;
+            document.getElementById('btn-marche').className = canal === 'marche' ? 'btn-active-blue' : 'btn-secondary';
+            document.getElementById('btn-paniers').className = canal === 'paniers' ? 'btn-active-blue' : 'btn-secondary';
+        }
+
+        async function saveEntry() {
+            console.log('saveEntry appelé');
+            const amount = parseFloat(document.getElementById('amount').value);
+            console.log('Montant:', amount);
+            
+            if (!amount || amount <= 0) {
+                alert('Montant invalide');
+                return;
+            }
+
+            const entry = {
+                id: Date.now().toString(),
+                date: document.getElementById('date').value,
+                type: currentType,
+                category: currentCanal,
+                amount: amount,
+                description: document.getElementById('description').value
+            };
+
+            console.log('Entrée à sauvegarder:', entry);
+
+            try {
+                console.log('Tentative sauvegarde...');
+                
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout')), 5000)
+                );
+                
+                const savePromise = window.storage.set('entry:' + entry.id, JSON.stringify(entry));
+                
+                const result = await Promise.race([savePromise, timeoutPromise]);
+                console.log('Résultat sauvegarde:', result);
+                
+                entries.unshift(entry);
+                document.getElementById('amount').value = '';
+                document.getElementById('description').value = '';
+                updateStats();
+                renderEntries();
+                alert('✓ Enregistré');
+            } catch (err) {
+                console.error('Erreur complète:', err);
+                
+                if (err.message === 'Timeout') {
+                    console.log('Timeout - sauvegarde locale uniquement');
+                    entries.unshift(entry);
+                    document.getElementById('amount').value = '';
+                    document.getElementById('description').value = '';
+                    updateStats();
+                    renderEntries();
+                    alert('✓ Enregistré (localement)');
+                } else {
+                    alert('Erreur: ' + err.message);
+                }
+            }
+        }
+
+        function updateStats() {
+            const month = new Date().toISOString().substring(0, 7);
+            const monthEntries = entries.filter(e => e.date.startsWith(month));
+            
+            const marche = monthEntries.filter(e => e.type === 'vente' && e.category === 'marche').reduce((s, e) => s + e.amount, 0);
+            const paniers = monthEntries.filter(e => e.type === 'vente' && e.category === 'paniers').reduce((s, e) => s + e.amount, 0);
+            const depenses = monthEntries.filter(e => e.type === 'depense').reduce((s, e) => s + e.amount, 0);
+            const solde = marche + paniers - depenses;
+
+            document.getElementById('stat-marche').textContent = marche.toFixed(2) + ' €';
+            document.getElementById('stat-paniers').textContent = paniers.toFixed(2) + ' €';
+            document.getElementById('stat-depenses').textContent = depenses.toFixed(2) + ' €';
+            document.getElementById('stat-solde').textContent = solde.toFixed(2) + ' €';
+            document.getElementById('stat-solde').style.color = solde >= 0 ? '#001F54' : '#B42150';
+        }
+
+        function renderEntries() {
+            const container = document.getElementById('entries');
+            if (entries.length === 0) {
+                container.innerHTML = '<div class="card" style="text-align: center; padding: 40px;"><div style="font-size: 64px; margin-bottom: 16px;">📊</div><p style="color: #6b7280;">Aucune entrée</p></div>';
+            } else {
+                container.innerHTML = '';
+                entries.forEach(e => {
+                    const div = document.createElement('div');
+                    div.className = 'entry';
+                    div.innerHTML = '<div style="flex: 1;"><div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">' +
+                        (e.type === 'vente' ? '💰' : '💸') + ' ' +
+                        (e.type === 'vente' ? (e.category === 'marche' ? 'Marché' : 'Paniers') : 'Dépense') +
+                        '</div>' +
+                        (e.description ? '<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">' + e.description + '</div>' : '') +
+                        '<div style="font-size: 12px; color: #9ca3af;">' +
+                        new Date(e.date).toLocaleDateString('fr-FR') +
+                        '</div></div>' +
+                        '<div style="display: flex; align-items: center; gap: 12px;">' +
+                        '<div class="entry-amount ' + (e.type === 'vente' ? 'green' : 'red') + '">' +
+                        e.amount.toFixed(2) + ' €</div></div>';
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '✕';
+                    deleteBtn.style.cssText = 'background: #B42150; color: white; padding: 8px 12px; border-radius: 6px; font-size: 14px; border: none; cursor: pointer;';
+                    deleteBtn.onclick = function() { handleDelete(e.id); };
+                    
+                    div.querySelector('div:last-child').appendChild(deleteBtn);
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        function handleDelete(id) {
+            console.log('handleDelete appelé pour:', id);
+            
+            const lengthBefore = entries.length;
+            entries = entries.filter(e => e.id !== id);
+            console.log('Entrées avant:', lengthBefore, 'après:', entries.length);
+            
+            updateStats();
+            renderEntries();
+            
+            window.storage.delete('entry:' + id).then(function() {
+                console.log('Supprimé du stockage');
+            }).catch(function(err) {
+                console.log('Erreur suppression stockage:', err);
+            });
+        }
+
+        function renderRecap() {
+            const container = document.getElementById('content-recap');
+            
+            const byMonth = {};
+            const byYear = {};
+            
+            entries.forEach(function(e) {
+                const month = e.date.substring(0, 7);
+                const year = e.date.substring(0, 4);
+                
+                if (!byMonth[month]) {
+                    byMonth[month] = { marche: 0, paniers: 0, depenses: 0 };
+                }
+                if (!byYear[year]) {
+                    byYear[year] = { marche: 0, paniers: 0, depenses: 0 };
+                }
+                
+                if (e.type === 'vente') {
+                    if (e.category === 'marche') {
+                        byMonth[month].marche += e.amount;
+                        byYear[year].marche += e.amount;
+                    } else {
+                        byMonth[month].paniers += e.amount;
+                        byYear[year].paniers += e.amount;
+                    }
+                } else {
+                    byMonth[month].depenses += e.amount;
+                    byYear[year].depenses += e.amount;
+                }
+            });
+            
+            const monthsSorted = Object.keys(byMonth).sort().reverse();
+            const yearsSorted = Object.keys(byYear).sort().reverse();
+            
+            let html = '';
+            
+            html += '<div class="card"><h2 style="margin-bottom: 16px;">Récapitulatif annuel</h2>';
+            yearsSorted.forEach(function(year) {
+                const stats = byYear[year];
+                const totalVentes = stats.marche + stats.paniers;
+                const solde = totalVentes - stats.depenses;
+                
+                html += '<div style="margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">' +
+                    '<h3 style="font-size: 20px; font-weight: bold; margin-bottom: 12px; color: #001F54;">' + year + '</h3>' +
+                    '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px;">' +
+                    '<div><strong>Marchés:</strong></div><div style="text-align: right;">' + stats.marche.toFixed(2) + ' €</div>' +
+                    '<div><strong>Paniers:</strong></div><div style="text-align: right;">' + stats.paniers.toFixed(2) + ' €</div>' +
+                    '<div><strong>Total ventes:</strong></div><div style="text-align: right; color: #001F54; font-weight: bold;">' + totalVentes.toFixed(2) + ' €</div>' +
+                    '<div><strong>Dépenses:</strong></div><div style="text-align: right; color: #B42150;">' + stats.depenses.toFixed(2) + ' €</div>' +
+                    '<div style="border-top: 2px solid #ddd; padding-top: 8px;"><strong>Solde:</strong></div>' +
+                    '<div style="border-top: 2px solid #ddd; padding-top: 8px; text-align: right; font-weight: bold; font-size: 16px; color: ' + (solde >= 0 ? '#001F54' : '#B42150') + ';">' + solde.toFixed(2) + ' €</div>' +
+                    '</div></div>';
+            });
+            html += '</div>';
+            
+            html += '<div class="card"><h2 style="margin-bottom: 16px;">Récapitulatif mensuel</h2>';
+            monthsSorted.forEach(function(month) {
+                const stats = byMonth[month];
+                const totalVentes = stats.marche + stats.paniers;
+                const solde = totalVentes - stats.depenses;
+                const date = new Date(month + '-01');
+                const monthName = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+                
+                html += '<div style="margin-bottom: 16px; padding: 12px; background: #f9fafb; border-radius: 8px;">' +
+                    '<h3 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: #374151; text-transform: capitalize;">' + monthName + '</h3>' +
+                    '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px;">' +
+                    '<div>Marchés:</div><div style="text-align: right;">' + stats.marche.toFixed(2) + ' €</div>' +
+                    '<div>Paniers:</div><div style="text-align: right;">' + stats.paniers.toFixed(2) + ' €</div>' +
+                    '<div>Total ventes:</div><div style="text-align: right; color: #001F54; font-weight: 600;">' + totalVentes.toFixed(2) + ' €</div>' +
+                    '<div>Dépenses:</div><div style="text-align: right; color: #B42150;">' + stats.depenses.toFixed(2) + ' €</div>' +
+                    '<div style="border-top: 1px solid #ddd; padding-top: 6px; font-weight: 600;">Solde:</div>' +
+                    '<div style="border-top: 1px solid #ddd; padding-top: 6px; text-align: right; font-weight: bold; color: ' + (solde >= 0 ? '#001F54' : '#B42150') + ';">' + solde.toFixed(2) + ' €</div>' +
+                    '</div></div>';
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+
+        loadEntries();
+    </script>
+</body>
+</html>
